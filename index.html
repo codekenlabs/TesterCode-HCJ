@@ -236,7 +236,7 @@ function saveProject(){
 function toggleProjects(){
   projectList.classList.toggle("active");
   const data = JSON.parse(localStorage.getItem("projects")||"{}");
-  projectList.innerHTML = "<b>📂 Project Tersimpan</b><br><br>";
+  projectList.innerHTML = "<b>📂 Saved Projects </b><br><br>";
   for(const k in data){
     const d = document.createElement("div");
     d.className="project-item";
