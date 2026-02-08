@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Mini OneCompiler — Smooth Fast</title>
+
+<!-- CodeMirror -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;font-family:Arial;
+  background:linear-gradient(135deg,#020617,#0f172a);
+  color:#fff;animation:fadeIn .5s ease
+}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.container{max-width:1000px;margin:auto;padding:20px}
+
+.header{
+  font-size:26px;font-weight:700;margin-bottom:14px;
+  animation:slideDown .6s ease
+}
+@keyframes slideDown{from{transform:translateY(-20px);opacity:0}to{opacity:1}}
+
+.editor{
+  background:#020617;padding:16px;border-radius:18px;
+  box-shadow:0 0 40px rgba(0,255,255,.15);
+  animation:pop .4s ease
+}
+@keyframes pop{from{transform:scale(.97);opacity:0}to{opacity:1}}
+
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+select{
+  background:#020617;color:#fff;border:1px solid #334155;
+  padding:8px 12px;border-radius:10px;transition:.2s
+}
+select:hover{border-color:#38bdf8}
+
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+button{
+  border:none;padding:10px 16px;border-radius:12px;
+  font-weight:700;cursor:pointer;transition:.2s
+}
+button:hover{transform:scale(1.06)}
+button:active{transform:scale(.96)}
+.run{background:#22c55e}
+.stop{background:#ef4444}
+.clean{background:#38bdf8;color:#020617}
+.save{background:#facc15;color:#020617}
+.projects{background:#a855f7}
+
+.CodeMirror{
+  height:240px;font-size:14px;border-radius:14px
+}
+
+.output{
+  margin-top:18px;background:#fff;border-radius:18px;overflow:hidden;
+  animation:slideUp .4s ease
+}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{opacity:1}}
+iframe{width:100%;height:260px;border:none}
+
+/* Loader */
+.loader-wrap{
+  display:flex;align-items:center;justify-content:center;height:260px
+}
+.loader{
+  width:56px;height:56px;border-radius:50%;
+  border:7px solid #e5e7eb;border-top-color:#38bdf8;
+  animation:spin .7s linear infinite
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Error Notif */
+.error{
+  position:fixed;top:-90px;left:50%;transform:translateX(-50%);
+  background:#ef4444;padding:14px 22px;border-radius:14px;
+  font-weight:800;transition:.5s;z-index:999
+}
+.error.show{top:20px}
+
+/* Modal */
+.modal{
+  position:fixed;inset:0;background:rgba(2,6,23,.85);
+  display:none;align-items:center;justify-content:center;z-index:999
+}
+.modal.active{display:flex}
+.modal-box{
+  background:#020617;padding:20px;border-radius:18px;width:320px;
+  animation:pop .3s ease
+}
+.modal-box input{
+  width:100%;padding:10px;border-radius:10px;border:1px solid #334155;
+  background:#020617;color:#fff;margin-top:6px
+}
+
+/* Project List */
+.project-list{
+  position:fixed;right:-300px;top:80px;width:260px;
+  background:#020617;border-radius:18px;padding:15px;
+  box-shadow:0 0 30px rgba(0,0,0,.6);
+  transition:.4s;z-index:998
+}
+.project-list.active{right:20px}
+.project-item{
+  padding:10px;border-radius:10px;background:#0f172a;
+  margin-bottom:8px;cursor:pointer;transition:.2s
+}
+.project-item:hover{background:#1e293b;transform:translateX(6px)}
+
+/* Toast */
+.toast{
+  position:fixed;bottom:-80px;left:50%;transform:translateX(-50%);
+  background:#22c55e;color:#020617;padding:12px 22px;
+  border-radius:999px;font-weight:800;transition:.4s
+}
+.toast.show{bottom:20px}
+</style>
+</head>
+
+<body>
+
+<div class="error" id="error">❌ Error! Perbaiki kode mu!</div>
+
+<div class="container">
+  <div class="header">🔥 Mini OneCompiler — Smooth Fast</div>
+
+  <div class="editor">
+    <div class="topbar">
+      <select id="lang" onchange="changeMode()">
+        <option value="html">HTML</option>
+        <option value="css">CSS</option>
+        <option value="js">JavaScript</option>
+      </select>
+      <span>⚡ Fast Loader ON</span>
+    </div>
+
+<textarea id="code"><h1>HELLO BRO 🔥</h1></textarea>
+
+    <div class="controls">
+      <button class="run" onclick="runCode()">▶ RUN</button>
+      <button class="stop" onclick="stopCode()">⛔ STOP</button>
+      <button class="clean" onclick="cleanCode()">🧹 CLEAN</button>
+      <button class="save" onclick="openSave()">💾 SAVE</button>
+      <button class="projects" onclick="toggleProjects()">📂 ONLY SAVE</button>
+    </div>
+  </div>
+
+  <div class="output" id="outputBox">
+    <iframe id="output"></iframe>
+  </div>
+</div>
+
+<!-- Save Modal -->
+<div class="modal" id="saveModal">
+  <div class="modal-box">
+    <h3>💾 Simpan Project?</h3>
+    <input id="projectName" placeholder="Nama Project">
+    <div class="controls">
+      <button class="save" onclick="saveProject()">Save</button>
+      <button class="stop" onclick="closeSave()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="project-list" id="projectList"></div>
+<div class="toast" id="toast">✅ Project berhasil disimpan</div>
+
+<script>
+const editor = CodeMirror.fromTextArea(code,{
+  theme:"dracula", lineNumbers:true, mode:"htmlmixed"
+});
+
+function changeMode(){
+  editor.setOption("mode", lang.value==="html" ? "htmlmixed" : lang.value);
+}
+
+function showError(){
+  error.classList.add("show");
+  setTimeout(()=>error.classList.remove("show"),5000);
+}
+
+function renderCode(){
+  const doc = output.contentDocument;
+  doc.open();
+  const c = editor.getValue();
+  if(lang.value==="html") doc.write(c);
+  if(lang.value==="css") doc.write(`<style>${c}</style>`);
+  if(lang.value==="js") doc.write(`<script>${c}<\/script>`);
+  doc.close();
+}
+
+function runCode(){
+  try{
+    const c = editor.getValue();
+    // smart loader: kode kecil = instant
+    if(c.trim().length < 60){
+      renderCode();
+      return;
+    }
+    outputBox.innerHTML = '<div class="loader-wrap"><div class="loader"></div></div>';
+    setTimeout(renderCode, 200); // CEPAT & SMOOTH
+  }catch(e){
+    showError();
+  }
+}
+
+function stopCode(){ output.src = "about:blank"; }
+function cleanCode(){ editor.setValue(""); }
+
+/* Save system */
+function openSave(){ saveModal.classList.add("active"); }
+function closeSave(){ saveModal.classList.remove("active"); }
+
+function saveProject(){
+  const n = projectName.value.trim();
+  if(!n) return;
+  const data = JSON.parse(localStorage.getItem("projects")||"{}");
+  data[n] = { lang: lang.value, code: editor.getValue() };
+  localStorage.setItem("projects", JSON.stringify(data));
+  closeSave();
+  toast.classList.add("show");
+  setTimeout(()=>toast.classList.remove("show"),3000);
+}
+
+function toggleProjects(){
+  projectList.classList.toggle("active");
+  const data = JSON.parse(localStorage.getItem("projects")||"{}");
+  projectList.innerHTML = "<b>📂 Project Tersimpan</b><br><br>";
+  for(const k in data){
+    const d = document.createElement("div");
+    d.className="project-item";
+    d.textContent=k;
+    d.onclick=()=>{
+      editor.setValue(data[k].code);
+      lang.value=data[k].lang;
+      changeMode();
+    };
+    projectList.appendChild(d);
+  }
+}
+</script>
+
+</body>
+</html>
